@@ -1,7 +1,7 @@
 kind: vendor
 id: PrusaResearch
 name: Prusa Research FFF
-version: 1.0.22
+version: 1.0.23
 features:
   printer:
     supports_high_flow_nozzle:
@@ -266,15 +266,15 @@ features:
   input_shaper:
     default: true
   supports_non_high_flow_nozzle:
-    default: false
+    default: true
   supports_025_nozzle:
     default: false
   supports_03_nozzle:
     default: false
   supports_05_nozzle:
-    default: false
+    default: true
   supports_06_nozzle:
-    default: false
+    default: true
   supports_08_nozzle:
     default: false
   multi_extruder:
@@ -620,7 +620,7 @@ kind: tool
 technology: FFF
 id: '0.4'
 name: '0.4'
-condition: printer.supports_non_high_flow_nozzle and (feeder.base_model!~/.*MMU.*/ or feeder.single_mode) and printer.supports_04_nozzle or (feeder.base_model=~/.*MMU.*/ and ! feeder.single_mode and printer.supports_mmu_04_nozzle) and printer.base_model!="COREONE_INDX"
+condition: (printer.supports_non_high_flow_nozzle and (feeder.base_model!~/.*MMU.*/ or feeder.single_mode) and printer.supports_04_nozzle) or (feeder.base_model=~/.*MMU.*/ and ! feeder.single_mode and printer.supports_mmu_04_nozzle)
 features:
   nozzle_diameter:
     default: 0.4
@@ -647,7 +647,7 @@ kind: tool
 technology: FFF
 id: '0.5'
 name: '0.5'
-condition: printer.supports_non_high_flow_nozzle and (feeder.base_model!~/.*MMU.*/ or feeder.single_mode) and printer.supports_05_nozzle or (feeder.base_model=~/.*MMU.*/ and ! feeder.single_mode and printer.supports_mmu_05_nozzle)
+condition: (printer.supports_non_high_flow_nozzle and (feeder.base_model!~/.*MMU.*/ or feeder.single_mode) and printer.supports_05_nozzle or (feeder.base_model=~/.*MMU.*/ and ! feeder.single_mode and printer.supports_mmu_05_nozzle)) and printer.base_model!="COREONE_INDX"
 features:
   nozzle_diameter:
     default: 0.5
@@ -656,7 +656,7 @@ kind: tool
 technology: FFF
 id: '0.6'
 name: '0.6'
-condition: printer.supports_non_high_flow_nozzle and (feeder.base_model!~/.*MMU.*/ or feeder.single_mode) and printer.supports_06_nozzle or (feeder.base_model=~/.*MMU.*/ and ! feeder.single_mode and printer.supports_mmu_06_nozzle)
+condition: (printer.supports_non_high_flow_nozzle and (feeder.base_model!~/.*MMU.*/ or feeder.single_mode) and printer.supports_06_nozzle or (feeder.base_model=~/.*MMU.*/ and ! feeder.single_mode and printer.supports_mmu_06_nozzle)) and printer.base_model!="COREONE_INDX"
 features:
   nozzle_diameter:
     default: 0.6
@@ -983,7 +983,7 @@ printer: COREONE_INDX
 legacy_printer_model: [COREONE_INDX4T]
 tool_count: 4
 tools:
-- tool: '0.4HF'
+- tool: '0.4'
 sheet: satin
 # visual:
 #   thumbnail: C1INDX_4T_thumbnail.svg
@@ -995,7 +995,7 @@ printer: COREONE_INDX
 legacy_printer_model: [COREONE_INDX8T]
 tool_count: 8
 tools:
-- tool: '0.4HF'
+- tool: '0.4'
 sheet: satin
 # visual:
 #   thumbnail: C1INDX_8T_thumbnail.svg

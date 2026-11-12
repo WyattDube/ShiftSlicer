@@ -750,6 +750,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Detect bridging perimeters
     ((ConfigOptionBool,                 overhangs))
     ((ConfigOptionInt,                  perimeter_extruder))
+    ((ConfigOptionInt,                  external_perimeter_extruder))
     ((ConfigOptionFloatOrPercent,       perimeter_extrusion_width))
     ((ConfigOptionFloat,                perimeter_speed))
     // Total number of perimeters.

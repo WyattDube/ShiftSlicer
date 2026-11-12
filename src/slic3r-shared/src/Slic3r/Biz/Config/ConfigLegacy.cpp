@@ -102,7 +102,7 @@ namespace {
                 "only_retract_when_crossing_perimeters", "ooze_prevention", "output_filename_format", "over_bridge_speed",
                 "overhang_fan_speed_0", "overhang_fan_speed_1", "overhang_fan_speed_2", "overhang_fan_speed_3", "overhang_speed_0",
                 "overhang_speed_1", "overhang_speed_2", "overhang_speed_3", "overhangs", "parking_pos_retraction",
-                "pause_print_gcode", "perimeter_acceleration", "perimeter_extruder", "perimeter_extrusion_width",
+                "pause_print_gcode", "perimeter_acceleration", "perimeter_extruder", "external_perimeter_extruder", "perimeter_extrusion_width",
                 "perimeter_generator", "perimeter_speed", "perimeters", "physical_printer_settings_id", "post_process",
                 "prefer_clockwise_movements", "print_settings_id", "printer_model", "printer_notes", "printer_settings_id",
                 "printer_technology", "printer_variant", "printer_vendor", "raft_contact_distance", "raft_expansion",

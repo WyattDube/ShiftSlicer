@@ -17,6 +17,7 @@ values:
   ooze_prevention: 1
   output_filename_format: '{input_filename_base}_{layer_height}mm_{printing_filament_types}_{printer_model}_{print_time}.gcode'
   perimeter_extruder: 1
+  external_perimeter_extruder: 1
   perimeter_generator: arachne
   single_extruder_multi_material_priming: 0
   skirts: 0

@@ -451,8 +451,9 @@ void ColorDropdown::reload_default_colors()
         return;
     }
 
-    const std::array<std::string_view, 3> extruder_keys{
+    const std::array<std::string_view, 4> extruder_keys{
         "perimeter_extruder",
+        "external_perimeter_extruder",
         "infill_extruder",
         "solid_infill_extruder",
     };

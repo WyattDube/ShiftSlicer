@@ -154,10 +154,11 @@ static void check_virtual_extruder_roles(
     std::vector<std::string>& result
 )
 {
-    using ExtruderIdsByRole = std::array<int, 3>;
+    using ExtruderIdsByRole = std::array<int, 4>;
 
-    const std::array<std::string, 3> extruder_role_keys{
+    const std::array<std::string, 4> extruder_role_keys{
         "perimeter_extruder",
+        "external_perimeter_extruder",
         "infill_extruder",
         "solid_infill_extruder"
     };
@@ -265,7 +266,7 @@ static std::optional<Biz::Slicing::Error> check_extruders(
         }
     }
 
-    for (const char* key : {"perimeter_extruder", "infill_extruder", "solid_infill_extruder"}) {
+    for (const char* key : {"perimeter_extruder", "external_perimeter_extruder", "infill_extruder", "solid_infill_extruder"}) {
         if (!accepts_extruder(config.print.items.opt(key), 1)) {
             result.push_back(key);
         }

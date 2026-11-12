@@ -486,6 +486,7 @@ PrintRegionConfigView create_mm_painted_region_config(
     Domain::VolumeSettings volume_settings;
     volume_settings.overrides.set("infill_extruder", painted_extruder_id);
     volume_settings.overrides.set("perimeter_extruder", painted_extruder_id);
+    volume_settings.overrides.set("external_perimeter_extruder", painted_extruder_id);
     volume_settings.overrides.set("solid_infill_extruder", painted_extruder_id);
 
     PrintRegionConfigView painted_region_cfg = parent_config;

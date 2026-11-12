@@ -3023,6 +3023,19 @@ void fdm_config_init_fn(ConfigDefinitions& defs)
     def->min = 1;
     def->init_fn = init_with(1);
 
+    def = defs.add("external_perimeter_extruder", typeid(int));
+    def->location = Print;
+    def->overrides_in = Locations{ Object, Volume, MacroOverrides };
+    def->label = L("External perimeter extruder");
+    def->option_group = ConfigItemDef::OptionGroup::Print_MultiMaterial_ExtruderAssignment;
+    def->category = ConfigItemDef::Category::Print_MultiMaterial;
+    def->order = 0;
+    def->gui_type = ConfigItemDef::GUIType::spinbox;
+    def->tooltip = L("The extruder to use when printing external perimeters. First extruder is 1.");
+    def->aliases = { "external_perimeters_extruder" };
+    def->min = 1;
+    def->init_fn = init_with(1);
+
     def = defs.add("perimeter_extrusion_width", typeid(FloatOrPercentage));
     def->location = Print;
     def->overrides_in = Locations{ Tool, Object, Volume, MacroSlotOverrides };

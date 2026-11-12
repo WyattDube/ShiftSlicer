@@ -836,7 +836,11 @@ void Layer::make_ironing()
 				 	(region.extruder_config_value<int>("top_solid_layers", FlowRole::frTopSolidInfill) > 0 && 
 						(config.get<Domain::IroningType>("ironing_type") == Domain::IroningType::TopSurfaces ||
 					 	(config.get<Domain::IroningType>("ironing_type") == Domain::IroningType::TopmostOnly && layerm->layer()->upper_layer == nullptr))))) {
-				if (config.get<int>("perimeter_extruder") == config.get<int>("solid_infill_extruder") || region.extruder_config_value<int>("perimeters", FlowRole::frPerimeter) == 0) {
+				const int num_perimeters = region.extruder_config_value<int>("perimeters", FlowRole::frPerimeter);
+				const int adj_perimeter_extruder = (num_perimeters == 1)
+					? config.get<int>("external_perimeter_extruder")
+					: config.get<int>("perimeter_extruder");
+				if (adj_perimeter_extruder == config.get<int>("solid_infill_extruder") || num_perimeters == 0) {
 					// Iron the whole face.
 					ironing_params.extruder = config.get<int>("solid_infill_extruder");
 				} else {

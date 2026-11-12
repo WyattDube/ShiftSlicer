@@ -207,6 +207,7 @@ static ExtrusionEntityCollection traverse_loops_classic(const PerimeterGenerator
     using namespace Slic3r::Feature::FuzzySkin;
 
     const int extruder_id{params.config.get<int>("perimeter_extruder")-1};
+    const int ext_extruder_id{params.config.get<int>("external_perimeter_extruder")-1};
 
     // loops is an arrayref of ::Loop objects
     // turn each one into an ExtrusionLoop object
@@ -231,7 +232,8 @@ static ExtrusionEntityCollection traverse_loops_classic(const PerimeterGenerator
         const Polygon polygon = apply_fuzzy_skin(loop.polygon, params.config, params.perimeter_regions, params.layer_id, loop.depth, loop.is_contour);
 
         ExtrusionPaths paths;
-        if (params.config.get<std::vector<bool>>("overhangs").at(extruder_id) && params.layer_id > params.config.get<int>("raft_layers") &&
+        const int loop_extruder_id = is_external ? ext_extruder_id : extruder_id;
+        if (params.config.get<std::vector<bool>>("overhangs").at(loop_extruder_id) && params.layer_id > params.config.get<int>("raft_layers") &&
             !((params.config.get<Domain::SupportMode>("support_material") != Domain::SupportMode::None || params.config.get<int>("support_material_enforce_layers") > 0) &&
               params.config.get<double>("support_material_contact_distance") == 0)) {
             // Detect overhanging/bridging perimeters.
@@ -427,6 +429,7 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator::P
     using namespace Slic3r::Feature::FuzzySkin;
 
     const int extruder_id{params.config.get<int>("perimeter_extruder")-1};
+    const int ext_extruder_id{params.config.get<int>("external_perimeter_extruder")-1};
 
     ExtrusionEntityCollection extrusion_coll;
     for (Arachne::PerimeterOrder::PerimeterExtrusion &pg_extrusion : pg_extrusions) {
@@ -443,7 +446,8 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator::P
 
         ExtrusionPaths paths;
         // detect overhanging/bridging perimeters
-        if (params.config.get<std::vector<bool>>("overhangs").at(extruder_id) && params.layer_id > params.config.get<int>("raft_layers")
+        const int loop_extruder_id = is_external ? ext_extruder_id : extruder_id;
+        if (params.config.get<std::vector<bool>>("overhangs").at(loop_extruder_id) && params.layer_id > params.config.get<int>("raft_layers")
             && ! ((params.config.get<Domain::SupportMode>("support_material") != Domain::SupportMode::None || params.config.get<int>("support_material_enforce_layers") > 0) &&
                  params.config.get<double>("support_material_contact_distance") == 0)) {
 
@@ -1020,14 +1024,16 @@ void PerimeterGenerator::process_arachne(
     coord_t solid_infill_spacing  = params.solid_infill_flow.scaled_spacing();
 
     const int extruder_id{params.config.get<int>("perimeter_extruder")-1};
+    const int ext_extruder_id{params.config.get<int>("external_perimeter_extruder")-1};
     ASSERT(extruder_id >= 0);
+    ASSERT(ext_extruder_id >= 0);
 
     // prepare grown lower layer slices for overhang detection
-    if (params.config.get<std::vector<bool>>("overhangs").at(extruder_id) && lower_slices != nullptr && lower_slices_polygons_cache.empty()) {
+    if ((params.config.get<std::vector<bool>>("overhangs").at(extruder_id) || params.config.get<std::vector<bool>>("overhangs").at(ext_extruder_id)) && lower_slices != nullptr && lower_slices_polygons_cache.empty()) {
         // We consider overhang any part where the entire nozzle diameter is not supported by the
         // lower layer, so we take lower slices and offset them by half the nozzle diameter used
         // in the current layer
-        double nozzle_diameter = Biz::Slicing::get_nozzle_diameter(params.config.hw_config(), extruder_id);
+        double nozzle_diameter = Biz::Slicing::get_nozzle_diameter(params.config.hw_config(), ext_extruder_id);
         lower_slices_polygons_cache = offset(*lower_slices, float(scale_(+nozzle_diameter/2)));
     }
 
@@ -1138,7 +1144,7 @@ void PerimeterGenerator::process_arachne(
     Arachne::PerimeterOrder::PerimeterExtrusions ordered_extrusions =
         Arachne::PerimeterOrder::ordered_perimeter_extrusions(
             perimeters,
-            params.config.get<std::vector<bool>>("external_perimeters_first").at(extruder_id)
+            params.config.get<std::vector<bool>>("external_perimeters_first").at(ext_extruder_id)
         );
 
     if (ExtrusionEntityCollection extrusion_coll = traverse_extrusions(params, lower_slices_polygons_cache, ordered_extrusions); !extrusion_coll.empty())
@@ -1243,17 +1249,19 @@ void PerimeterGenerator::process_classic(
     coord_t ext_min_spacing     = coord_t(ext_perimeter_spacing  * (1 - INSET_OVERLAP_TOLERANCE));
 
     const int extruder_id{params.config.get<int>("perimeter_extruder")-1};
+    const int ext_extruder_id{params.config.get<int>("external_perimeter_extruder")-1};
     ASSERT(extruder_id >= 0);
+    ASSERT(ext_extruder_id >= 0);
 
     bool has_gap_fill = params.config.get<std::vector<bool>>("gap_fill_enabled").at(extruder_id)
         && params.config.get<std::vector<double>>("gap_fill_speed").at(extruder_id) > 0;
 
     // prepare grown lower layer slices for overhang detection
-    if (params.config.get<std::vector<bool>>("overhangs").at(extruder_id) && lower_slices != nullptr && lower_slices_polygons_cache.empty()) {
+    if ((params.config.get<std::vector<bool>>("overhangs").at(extruder_id) || params.config.get<std::vector<bool>>("overhangs").at(ext_extruder_id)) && lower_slices != nullptr && lower_slices_polygons_cache.empty()) {
         // We consider overhang any part where the entire nozzle diameter is not supported by the
         // lower layer, so we take lower slices and offset them by half the nozzle diameter used 
         // in the current layer
-        double nozzle_diameter = Biz::Slicing::get_nozzle_diameter(params.config.hw_config(), extruder_id);
+        double nozzle_diameter = Biz::Slicing::get_nozzle_diameter(params.config.hw_config(), ext_extruder_id);
         lower_slices_polygons_cache = offset(*lower_slices, float(scale_(+nozzle_diameter/2)));
     }
 
@@ -1502,7 +1510,7 @@ void PerimeterGenerator::process_classic(
         // if brim will be printed, reverse the order of perimeters so that
         // we continue inwards after having finished the brim
         // TODO: add test for perimeter order
-        if (params.config.get<std::vector<bool>>("external_perimeters_first").at(extruder_id) ||
+        if (params.config.get<std::vector<bool>>("external_perimeters_first").at(ext_extruder_id) ||
             (params.layer_id == 0 && params.config.get<double>("brim_width") > 0))
             entities.reverse();
         // append perimeters for this slice as a collection

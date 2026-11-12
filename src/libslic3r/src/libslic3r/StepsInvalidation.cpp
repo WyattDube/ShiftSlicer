@@ -394,6 +394,7 @@ const std::map<std::string, std::vector<Step>> invalidated_by{
     {"pause_print_gcode", steps({propagate(psGCodeExport)})},
     {"perimeter_acceleration", steps({propagate(psGCodeExport)})},
     {"perimeter_extruder", steps({propagate(posPerimeters), propagate(posSupportMaterial)})},
+    {"external_perimeter_extruder", steps({propagate(posPerimeters), propagate(posSupportMaterial)})},
     {"perimeter_extrusion_width", steps({propagate(posPerimeters)})},
     {"perimeter_generator", steps({propagate(posSlice)})},
     {"perimeter_speed", steps({propagate(psWipeTower), propagate(psGCodeExport)})},

@@ -18,6 +18,7 @@ function execute(opts)
         -- Everything that is not support follows the model extruder: the model itself,
         -- the bed temperature and the wipe tower perimeters (one material, present on every layer).
         perimeter_extruder = model,
+        external_perimeter_extruder = model,
         infill_extruder = model,
         solid_infill_extruder = model,
         bed_temperature_extruder = model,

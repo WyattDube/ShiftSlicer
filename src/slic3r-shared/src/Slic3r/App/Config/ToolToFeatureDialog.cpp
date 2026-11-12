@@ -27,6 +27,8 @@ static std::string label_from_name(const std::string& name)
 {
     if (name == "perimeter_extruder")
         return Biz::_u8L("Perimeter");
+    if (name == "external_perimeter_extruder")
+        return Biz::_u8L("External perimeter");
     if (name == "infill_extruder")
         return Biz::_u8L("Infill");
     if (name == "solid_infill_extruder")

@@ -40,6 +40,27 @@ int get_extruder_id(
     return extruder_id;
 }
 
+int get_extruder_id(
+    const ExtrusionEntity &ee,
+    const ExtrusionEntityCollection &parent_eec,
+    const LayerTools &layer_tools,
+    const PrintRegion &region,
+    const std::size_t instance_id
+) {
+    if (is_overriden(parent_eec, layer_tools, instance_id)) {
+        return layer_tools.wiping_extrusions().get_extruder_override(&parent_eec, instance_id);
+    }
+
+    const int extruder_id = layer_tools.extruder(ee, region);
+    if (! layer_tools.has_extruder(extruder_id)) {
+        // Extruder is not in layer_tools - we'll print it by last extruder on this layer (could
+        // happen e.g. when a wiping object is taller than others - dontcare extruders are
+        // eradicated from layer_tools)
+        return layer_tools.extruders.back();
+    }
+    return extruder_id;
+}
+
 Point get_gcode_point(const InstancePoint &point, const Point &offset) {
     return point.local_point + offset;
 }
@@ -63,6 +84,7 @@ std::optional<InstancePoint> get_instance_point(const std::optional<Point> &poin
 }
 
 using ExtractEntityPredicate = std::function<bool(const ExtrusionEntityCollection&, const PrintRegion&)>;
+using ExtractPerimeterEntityPredicate = std::function<bool(const ExtrusionEntity&, const ExtrusionEntityCollection&, const PrintRegion&)>;
 
 ExtrusionEntitiesPtr extract_infill_extrusions(
     const PrintRegion &region,
@@ -100,7 +122,7 @@ std::vector<Perimeter> extract_perimeter_extrusions(
     const Print &print,
     const Layer &layer,
     const LayerIsland &island,
-    const ExtractEntityPredicate &should_pick_extrusion,
+    const ExtractPerimeterEntityPredicate &should_pick_perimeter,
     const unsigned extruder_id,
     const Point &offset,
     std::optional<Point> &previous_position,
@@ -116,12 +138,12 @@ std::vector<Perimeter> extract_perimeter_extrusions(
         // Don't reorder them.
         assert(dynamic_cast<ExtrusionEntityCollection*>(layerm.perimeters().entities[perimeter_id]));
         auto *eec = static_cast<ExtrusionEntityCollection*>(layerm.perimeters().entities[perimeter_id]);
-        if (eec == nullptr || eec->empty() || !should_pick_extrusion(*eec, region)) {
+        if (eec == nullptr || eec->empty()) {
             continue;
         }
 
         for (ExtrusionEntity *ee : *eec) {
-            if (ee != nullptr) {
+            if (ee != nullptr && should_pick_perimeter(*ee, *eec, region)) {
                 std::optional<InstancePoint> last_position{get_instance_point(previous_position, offset)};
                 bool reverse_loop{false};
                 if (auto loop = dynamic_cast<const ExtrusionLoop *>(ee)) {
@@ -226,6 +248,7 @@ std::vector<IslandExtrusions> extract_island_extrusions(
     const Print &print,
     const Layer &layer,
     const ExtractEntityPredicate &should_pick_extrusion,
+    const ExtractPerimeterEntityPredicate &should_pick_perimeter,
     const PathSmoothingFunction &smooth_path,
     const Point &offset,
     const unsigned extruder_id,
@@ -254,9 +277,9 @@ std::vector<IslandExtrusions> extract_island_extrusions(
                 print, layer, island, offset, previous_position, should_pick_infill, smooth_path, extruder_id
             );
 
-            island_extrusions.perimeters = extract_perimeter_extrusions(print, layer, island, should_pick_extrusion, extruder_id, offset, previous_position, smooth_path);
+            island_extrusions.perimeters = extract_perimeter_extrusions(print, layer, island, should_pick_perimeter, extruder_id, offset, previous_position, smooth_path);
         } else {
-            island_extrusions.perimeters = extract_perimeter_extrusions(print, layer, island, should_pick_extrusion, extruder_id, offset, previous_position, smooth_path);
+            island_extrusions.perimeters = extract_perimeter_extrusions(print, layer, island, should_pick_perimeter, extruder_id, offset, previous_position, smooth_path);
 
             island_extrusions.infill_ranges = extract_infill_ranges(
                 print, layer, island, offset, previous_position, should_pick_infill, smooth_path, extruder_id
@@ -298,6 +321,7 @@ std::vector<SliceExtrusions> get_slices_extrusions(
     const Print &print,
     const Layer &layer,
     const ExtractEntityPredicate &should_pick_extrusion,
+    const ExtractPerimeterEntityPredicate &should_pick_perimeter,
     const PathSmoothingFunction &smooth_path,
     const Point &offset,
     const unsigned extruder_id,
@@ -314,7 +338,7 @@ std::vector<SliceExtrusions> get_slices_extrusions(
     for (size_t idx : layer.lslice_indices_sorted_by_print_order) {
         const LayerSlice &lslice = layer.lslices_ex[idx];
         std::vector<IslandExtrusions> island_extrusions{extract_island_extrusions(
-            lslice, print, layer, should_pick_extrusion, smooth_path, offset, extruder_id, previous_position
+            lslice, print, layer, should_pick_extrusion, should_pick_perimeter, smooth_path, offset, extruder_id, previous_position
         )};
         std::vector<InfillRange> ironing_extrusions{extract_ironing_extrusions(
             lslice, print, layer, should_pick_extrusion, smooth_path, offset, extruder_id, previous_position
@@ -431,11 +455,25 @@ std::vector<OverridenExtrusions> get_overriden_extrusions(
                 return true;
             };
 
+            const auto should_pick_perimeter = [&layer_tools, &instance, &extruder_id](
+                const ExtrusionEntity &ee,
+                const ExtrusionEntityCollection &parent_eec,
+                const PrintRegion &region
+            ) {
+                if (!is_overriden(parent_eec, layer_tools, instance.instance_id)) {
+                    return false;
+                }
+
+                return get_extruder_id(
+                    ee, parent_eec, layer_tools, region, instance.instance_id
+                ) == static_cast<int>(extruder_id);
+            };
+
             const PrintObject &print_object{instance.print_object};
             const Point offset{print_object.instances()[instance.instance_id].shift()};
 
             std::vector<SliceExtrusions> slices_extrusions{get_slices_extrusions(
-                print, *layer, should_pick_extrusion, smooth_path, offset, extruder_id, previous_position
+                print, *layer, should_pick_extrusion, should_pick_perimeter, smooth_path, offset, extruder_id, previous_position
             )};
             result.push_back({offset, std::move(slices_extrusions)});
         }
@@ -485,10 +523,23 @@ std::vector<NormalExtrusions> get_normal_extrusions(
                 return true;
             }};
 
+            const auto should_pick_perimeter{[&layer_tools, &instance, &extruder_id](
+                const ExtrusionEntity &ee,
+                const ExtrusionEntityCollection &parent_eec,
+                const PrintRegion &region
+            ){
+                if (is_overriden(parent_eec, layer_tools, instance.instance_id)) {
+                    return false;
+                }
+
+                return get_extruder_id(ee, parent_eec, layer_tools, region, instance.instance_id) == static_cast<int>(extruder_id);
+            }};
+
             result.back().slices_extrusions = get_slices_extrusions(
                 print,
                 *layer,
                 should_pick_extrusion,
+                should_pick_perimeter,
                 smooth_path,
                 offset,
                 extruder_id,

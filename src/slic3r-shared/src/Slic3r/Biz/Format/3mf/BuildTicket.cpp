@@ -287,6 +287,7 @@ void apply(const BuildTicket         &build_ticket,
             config.set_deserialize("infill_extruder", extruder_number, config_substitutions);
             config.set_deserialize("solid_infill_extruder", extruder_number, config_substitutions);
             config.set_deserialize("perimeter_extruder", extruder_number, config_substitutions);
+            config.set_deserialize("external_perimeter_extruder", extruder_number, config_substitutions);
         } else if (prop.name == BT_EXTRUDER_NUMBER_FOR_SUPPORT_NAME) {
             config.set_deserialize("support_material_extruder", get_extruder_number(prop.value, true), config_substitutions);
         } else {

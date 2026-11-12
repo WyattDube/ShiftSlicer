@@ -138,6 +138,7 @@ public:
         }
 
         if (item.name() == "perimeter_extruder"
+            || item.name() == "external_perimeter_extruder"
             || item.name() == "infill_extruder"
             || item.name() == "solid_infill_extruder")
         {

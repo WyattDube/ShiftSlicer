@@ -39,6 +39,7 @@ tl::expected<FullConfigFDMPtr, std::vector<Error>> prepare_slicing_input(
         for (const char* key :
              {
                  "perimeter_extruder",
+                 "external_perimeter_extruder",
                  "infill_extruder",
                  "solid_infill_extruder",
                  "support_material_extruder",

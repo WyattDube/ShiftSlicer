@@ -670,7 +670,14 @@ inline bool has_compatible_layer_regions(const PrintRegionConfigView &config, co
         return false;
     }
 
+    const auto ext_extruder{config.get<int>("external_perimeter_extruder")};
+    const auto other_ext_extruder{other_config.get<int>("external_perimeter_extruder")};
+    if (ext_extruder != other_ext_extruder) {
+        return false;
+    }
+    
     const int extruder_id{extruder == 0 ? 0 : extruder - 1};
+    const int ext_extruder_id{ext_extruder == 0 ? 0 : ext_extruder - 1};
 
     const auto extrusion_width{
         config.get<std::vector<Domain::FloatOrPercentage>>("perimeter_extrusion_width").at(extruder_id).get_abs_value(1.0)
@@ -678,15 +685,21 @@ inline bool has_compatible_layer_regions(const PrintRegionConfigView &config, co
     const auto other_extrusion_width{
         other_config.get<std::vector<Domain::FloatOrPercentage>>("perimeter_extrusion_width").at(extruder_id).get_abs_value(1.0)
     };
+    const auto ext_extrusion_width{
+        config.get<std::vector<Domain::FloatOrPercentage>>("external_perimeter_extrusion_width").at(ext_extruder_id).get_abs_value(1.0)
+    };
+    const auto other_ext_extrusion_width{
+        other_config.get<std::vector<Domain::FloatOrPercentage>>("external_perimeter_extrusion_width").at(ext_extruder_id).get_abs_value(1.0)
+    };
 
     return config.get<std::vector<int>>("perimeters").at(extruder_id)
         == other_config.get<std::vector<int>>("perimeters").at(extruder_id)
         && config.get<std::vector<double>>("perimeter_speed").at(extruder_id)
         == other_config.get<std::vector<double>>("perimeter_speed").at(extruder_id)
         && config.get<std::vector<Domain::FloatOrPercentage>>("external_perimeter_speed")
-               .at(extruder_id)
+               .at(ext_extruder_id)
         == other_config.get<std::vector<Domain::FloatOrPercentage>>("external_perimeter_speed")
-               .at(extruder_id)
+               .at(ext_extruder_id)
         && (config.get<std::vector<bool>>("gap_fill_enabled").at(extruder_id) ?
                 config.get<std::vector<double>>("gap_fill_speed").at(extruder_id) :
                 0.)
@@ -695,14 +708,18 @@ inline bool has_compatible_layer_regions(const PrintRegionConfigView &config, co
                 0.)
         && config.get<std::vector<bool>>("overhangs").at(extruder_id)
         == other_config.get<std::vector<bool>>("overhangs").at(extruder_id)
-        && std::abs(extrusion_width - other_extrusion_width) < 1e6
+        && config.get<std::vector<bool>>("overhangs").at(ext_extruder_id)
+        == other_config.get<std::vector<bool>>("overhangs").at(ext_extruder_id)
+        && std::abs(extrusion_width - other_extrusion_width) < 1e-6
+        && std::abs(ext_extrusion_width - other_ext_extrusion_width) < 1e-6
         && config.get<bool>("thin_walls") == other_config.get<bool>("thin_walls")
-        && config.get<std::vector<bool>>("external_perimeters_first").at(extruder_id)
-        == other_config.get<std::vector<bool>>("external_perimeters_first").at(extruder_id)
+        && config.get<std::vector<bool>>("external_perimeters_first").at(ext_extruder_id)
+        == other_config.get<std::vector<bool>>("external_perimeters_first").at(ext_extruder_id)
         && config.get<std::vector<Domain::FloatOrPercentage>>("infill_overlap").at(extruder_id)
         == other_config.get<std::vector<Domain::FloatOrPercentage>>("infill_overlap")
                .at(extruder_id)
-        && has_compatible_dynamic_overhang_speed(config, other_config, extruder_id);
+        && has_compatible_dynamic_overhang_speed(config, other_config, extruder_id)
+        && has_compatible_dynamic_overhang_speed(config, other_config, ext_extruder_id);
 }
 
 // Here the perimeters are created cummulatively for all layer regions sharing the same parameters influencing the perimeters.

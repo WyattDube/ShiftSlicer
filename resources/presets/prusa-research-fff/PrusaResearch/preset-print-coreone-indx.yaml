@@ -287,6 +287,10 @@ variants:
         id: RLq4JV6nS7ygRFt4hRUY8g
         values:
           layer_height: 0.20
+      - name: 0.25mm
+        id: c1indx_non_hf_04_025
+        values:
+          layer_height: 0.25
   # C1 INDX 0.5
     - condition: tool.nozzle_diameter == 0.5
       id: EOLVJ5HxRaa79OycpO66Kw

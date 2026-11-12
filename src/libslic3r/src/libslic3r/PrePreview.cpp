@@ -425,15 +425,33 @@ MoveVerticesPerLayer get_perimeters_preview(
             const Slic3r::PrintRegionConfigView& config{region.region().config()};
             const auto extruder_id{
                 static_cast<uint8_t>(std::max(config.get<int>("perimeter_extruder") - 1, 0))};
+            const auto ext_extruder_id{
+                static_cast<uint8_t>(std::max(config.get<int>("external_perimeter_extruder") - 1, 0))};
 
-            const libpgcode::MoveVertex vertex_template{
-                .type = libpgcode::MoveType::Extrude,
-                .extrusion_role = GCodeExtrusionRole::ExternalPerimeter,
-                .extruder_id = extruder_id};
+            auto convert_perimeter_entity = [&](const Slic3r::ExtrusionEntity* entity, auto& self) -> void {
+                if (entity == nullptr) {
+                    return;
+                }
+                if (const auto* coll = dynamic_cast<const Slic3r::ExtrusionEntityCollection*>(entity)) {
+                    for (const Slic3r::ExtrusionEntity* child : coll->entities) {
+                        self(child, self);
+                    }
+                    return;
+                }
+                const bool is_ext = entity->role().is_external_perimeter();
+                const libpgcode::MoveVertex vertex_template{
+                    .type = libpgcode::MoveType::Extrude,
+                    .extrusion_role = is_ext ? GCodeExtrusionRole::ExternalPerimeter : GCodeExtrusionRole::Perimeter,
+                    .extruder_id = is_ext ? ext_extruder_id : extruder_id};
 
-            append(result[scaled(layer.print_z)], convert_to_vertices(
-                region.perimeters(), layer.print_z, vertex_template, instance.shift()
-            ));
+                append(result[scaled(layer.print_z)], convert_entity_to_vertices(
+                    *entity, layer.print_z, vertex_template, instance.shift()
+                ));
+            };
+
+            for (const Slic3r::ExtrusionEntity* entity : region.perimeters().entities) {
+                convert_perimeter_entity(entity, convert_perimeter_entity);
+            }
         }
     );
     return result;

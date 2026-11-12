@@ -1033,7 +1033,7 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
             if (const PrintRegionConfigView &config = region->region().config();
                 // color_idx == 0 means "don't know" extruder aka the underlying extruder.
                 // As this region may split existing regions, we collect statistics over all regions for color_idx == 0.
-                color_idx == 0 || config.get<int>("perimeter_extruder") == int(color_idx)) {
+                color_idx == 0 || config.get<int>("perimeter_extruder") == int(color_idx) || config.get<int>("external_perimeter_extruder") == int(color_idx)) {
                 const Flow perimeter_flow = region->flow(FlowRole::frPerimeter);
                 out.extrusion_width     = std::max<float>(out.extrusion_width, perimeter_flow.width());
                 out.top_solid_layers    = std::max<int>(out.top_solid_layers, print_region.extruder_config_value<int>("top_solid_layers", FlowRole::frTopSolidInfill));

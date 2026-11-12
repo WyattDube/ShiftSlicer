@@ -1051,6 +1051,7 @@ static void clamp_extruders_to_single_slot(SquashResult& squashed_boxes)
 {
     for (const std::string& key :
          {"perimeter_extruder",
+          "external_perimeter_extruder",
           "infill_extruder",
           "solid_infill_extruder",
           "support_material_extruder",
@@ -1071,7 +1072,7 @@ static void expand_parameters(SquashResult& squashed_boxes, const std::size_t ma
     if (const ConfigValueAndDef* extruder{find_param(squashed_boxes.squashed_values, "extruder")}) {
         if (extruder->value != ConfigValue{0}) {
             for (const std::string& key :
-                 {"perimeter_extruder", "infill_extruder", "solid_infill_extruder"})
+                 {"perimeter_extruder", "external_perimeter_extruder", "infill_extruder", "solid_infill_extruder"})
             {
                 ConfigValueAndDef* specific_extruder{
                     find_param(squashed_boxes.squashed_values, key)};

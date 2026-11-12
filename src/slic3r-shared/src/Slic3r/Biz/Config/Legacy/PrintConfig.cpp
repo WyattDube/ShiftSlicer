@@ -2613,6 +2613,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(1));
 
+    def = this->add("external_perimeter_extruder", coInt);
+    def->label = L("External perimeter extruder");
+    def->category = L("Extruders");
+    def->tooltip = L("The extruder to use when printing external perimeters. First extruder is 1.");
+    def->aliases = { "external_perimeters_extruder" };
+    def->min = 1;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(1));
+
     def = this->add("perimeter_extrusion_width", coFloatOrPercent);
     def->label = L("Perimeters");
     def->category = L("Extrusion Width");
@@ -5388,6 +5397,8 @@ void DynamicPrintConfig::normalize_fdm()
                 this->option("infill_extruder", true)->setInt(extruder);
             if (!this->has("perimeter_extruder"))
                 this->option("perimeter_extruder", true)->setInt(extruder);
+            if (!this->has("external_perimeter_extruder"))
+                this->option("external_perimeter_extruder", true)->setInt(extruder);
             // Don't propagate the current extruder to support.
             // For non-soluble supports, the default "0" extruder means to use the active extruder,
             // for soluble supports one certainly does not want to set the extruder to non-soluble.
@@ -5541,7 +5552,8 @@ void  handle_legacy_sla(DynamicPrintConfig &config)
             }
 
             if (std::string corr_z = corr + "_z"; !config.has(corr_z)) {
-                auto* opt = config.opt<ConfigOptionFloat>(corr_z, true);
+                auto* opt =
+ config.opt<ConfigOptionFloat>(corr_z, true);
                 opt->value = config.opt<ConfigOptionFloats>(corr)->values[1];
             }
         }

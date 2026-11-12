@@ -91,9 +91,11 @@ public:
 
     // Return a zero based extruder from the region, or extruder_override if overriden.
     unsigned int perimeter_extruder(const PrintRegion &region) const;
+    unsigned int external_perimeter_extruder(const PrintRegion &region) const;
     unsigned int infill_extruder(const PrintRegion &region) const;
     unsigned int solid_infill_extruder(const PrintRegion &region) const;
-	// Returns a zero based extruder this eec should be printed with, according to PrintRegion config or extruder_override if overriden.
+	// Returns a zero based extruder this extrusion/eec should be printed with, according to PrintRegion config or extruder_override if overriden.
+	unsigned int extruder(const ExtrusionEntity &extrusion, const PrintRegion &region) const;
 	unsigned int extruder(const ExtrusionEntityCollection &extrusions, const PrintRegion &region) const;
 
     double 					print_z	= 0.;

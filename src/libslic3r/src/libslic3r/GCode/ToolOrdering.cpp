@@ -53,6 +53,12 @@ unsigned int LayerTools::perimeter_extruder(const PrintRegion &region) const
 	return ((this->extruder_override == 0) ? region.config().get<int>("perimeter_extruder") : this->extruder_override) - 1;
 }
 
+unsigned int LayerTools::external_perimeter_extruder(const PrintRegion &region) const
+{
+	assert(region.config().get<int>("external_perimeter_extruder") > 0);
+	return ((this->extruder_override == 0) ? region.config().get<int>("external_perimeter_extruder") : this->extruder_override) - 1;
+}
+
 unsigned int LayerTools::infill_extruder(const PrintRegion &region) const
 {
 	assert(region.config().get<int>("infill_extruder") > 0);
@@ -65,19 +71,38 @@ unsigned int LayerTools::solid_infill_extruder(const PrintRegion &region) const
 	return ((this->extruder_override == 0) ? region.config().get<int>("solid_infill_extruder") : this->extruder_override) - 1;
 }
 
-// Returns a zero based extruder this eec should be printed with, according to PrintRegion config or extruder_override if overriden.
-unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, const PrintRegion &region) const
+// Returns a zero based extruder this extrusion should be printed with, according to PrintRegion config or extruder_override if overriden.
+unsigned int LayerTools::extruder(const ExtrusionEntity &extrusion, const PrintRegion &region) const
 {
 	assert(region.config().get<int>("perimeter_extruder") > 0);
+	assert(region.config().get<int>("external_perimeter_extruder") > 0);
 	assert(region.config().get<int>("infill_extruder") > 0);
 	assert(region.config().get<int>("solid_infill_extruder") > 0);
+
+	if (this->extruder_override != 0)
+		return this->extruder_override - 1;
+
+	ExtrusionRole role = extrusion.role();
+	if (extrusion.is_collection()) {
+		const auto &coll = static_cast<const ExtrusionEntityCollection&>(extrusion);
+		if (!coll.entities.empty())
+			role = coll.entities.front()->role();
+	}
+
 	// 1 based extruder ID.
-	unsigned int extruder = this->extruder_override == 0 ?
-	    (extrusions.role().is_infill() ?
-	    	(extrusions.entities.front()->role().is_solid_infill() ? region.config().get<int>("solid_infill_extruder") : region.config().get<int>("infill_extruder")) :
-			region.config().get<int>("perimeter_extruder")) :
-		this->extruder_override;
+	unsigned int extruder =
+	    role.is_infill() ?
+	    	(role.is_solid_infill() ? region.config().get<int>("solid_infill_extruder") : region.config().get<int>("infill_extruder")) :
+	    role.is_external_perimeter() ?
+			region.config().get<int>("external_perimeter_extruder") :
+			region.config().get<int>("perimeter_extruder");
+
 	return (extruder == 0) ? 0 : extruder - 1;
+}
+
+unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, const PrintRegion &region) const
+{
+    return this->extruder(static_cast<const ExtrusionEntity&>(extrusions), region);
 }
 
 static double calc_max_layer_height(const PrintConfigView &config, double max_object_layer_height)
@@ -282,19 +307,43 @@ void ToolOrdering::collect_extruders(
             const PrintRegion &region = layerm->region();
 
             if (! layerm->perimeters().empty()) {
-                bool something_nonoverriddable = true;
+                bool has_inner_perimeters    = false;
+                bool has_external_perimeters = false;
 
-                if (m_print_config_ptr) { // in this case complete_objects is false (see ToolOrdering constructors)
-                    something_nonoverriddable = false;
-                    for (const ExtrusionEntity *eec : layerm->perimeters()) // let's check if there are nonoverriddable entities
-                        if (is_overriddable(dynamic_cast<const ExtrusionEntityCollection&>(*eec), layer_tools, *m_print_config_ptr, object, region))
+                auto scan_perimeter_roles = [&](const ExtrusionEntity *ee, auto &self) -> void {
+                    if (ee->is_collection()) {
+                        for (const ExtrusionEntity *child : static_cast<const ExtrusionEntityCollection*>(ee)->entities)
+                            self(child, self);
+                    } else if (ee->role().is_external_perimeter()) {
+                        has_external_perimeters = true;
+                    } else {
+                        has_inner_perimeters = true;
+                    }
+                };
+
+                bool something_nonoverriddable = !m_print_config_ptr;
+                for (const ExtrusionEntity *eec : layerm->perimeters()) {
+                    const auto &coll = dynamic_cast<const ExtrusionEntityCollection&>(*eec);
+                    if (m_print_config_ptr) {
+                        if (is_overriddable(coll, layer_tools, *m_print_config_ptr, object, region)) {
                             layer_tools.wiping_extrusions_nonconst().set_something_overridable();
-                        else
-                            something_nonoverriddable = true;
+                            continue;
+                        }
+                        something_nonoverriddable = true;
+                    }
+                    scan_perimeter_roles(eec, scan_perimeter_roles);
                 }
 
-                if (something_nonoverriddable)
-               		layer_tools.extruders.emplace_back(extruder_override == 0 ? region.config().get<int>("perimeter_extruder") : extruder_override);
+                if (something_nonoverriddable) {
+                    if (extruder_override != 0) {
+                        layer_tools.extruders.emplace_back(extruder_override);
+                    } else {
+                        if (has_inner_perimeters)
+                            layer_tools.extruders.emplace_back(region.config().get<int>("perimeter_extruder"));
+                        if (has_external_perimeters)
+                            layer_tools.extruders.emplace_back(region.config().get<int>("external_perimeter_extruder"));
+                    }
+                }
 
                 layer_tools.has_object = true;
             }
@@ -800,7 +849,8 @@ float WipingExtrusions::mark_wiping_extrusions(const Print& print, const LayerTo
                         if (wipe_into_infill_only && ! print.config().get<bool>("infill_first"))
                             // In this case we must check that the original extruder is used on this layer before the one we are overridding
                             // (and the perimeters will be finished before the infill is printed):
-                            if (!lt.is_extruder_order(lt.perimeter_extruder(region), new_extruder))
+                            if (!lt.is_extruder_order(lt.perimeter_extruder(region), new_extruder) ||
+                                !lt.is_extruder_order(lt.external_perimeter_extruder(region), new_extruder))
                                 continue;
 
                         if ((!is_entity_overridden(fill, copy) && fill->total_volume() > min_infill_volume)) {     // this infill will be used to wipe this extruder
@@ -873,9 +923,10 @@ void WipingExtrusions::ensure_perimeters_infills_order(const Print& print, const
                     // not been added to LayerTools
                     // Either way, we will now force-override it with something suitable:
                     if (print.config().get<bool>("infill_first")
-                    || object->config().get<bool>("wipe_into_objects")  // in this case the perimeter is overridden, so we can override by the last one safely
-                    || lt.is_extruder_order(lt.perimeter_extruder(region), last_nonsoluble_extruder)    // !infill_first, but perimeter is already printed when last extruder prints
-                    || ! lt.has_extruder(lt.infill_extruder(region))) // we have to force override - this could violate infill_first (FIXME)
+                        || object->config().get<bool>("wipe_into_objects")
+                        || (lt.is_extruder_order(lt.perimeter_extruder(region), last_nonsoluble_extruder) &&
+                            lt.is_extruder_order(lt.external_perimeter_extruder(region), last_nonsoluble_extruder))
+                        || ! lt.has_extruder(lt.infill_extruder(region)))
                         set_extruder_override(fill, copy, (print.config().get<bool>("infill_first") ? first_nonsoluble_extruder : last_nonsoluble_extruder), num_of_copies);
                     else {
                         // In this case we can (and should) leave it to be printed normally.

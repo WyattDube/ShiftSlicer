@@ -386,8 +386,8 @@ void PlaterScenePresenter::on_preset_value_changed(
         project_id, config_container_id, item
     );
 
-    const constexpr std::array<std::string_view, 4>
-        extruder_keys{"extruder", "perimeter_extruder", "infill_extruder", "solid_infill_extruder"};
+    const constexpr std::array<std::string_view, 5>
+        extruder_keys{"extruder", "perimeter_extruder", "external_perimeter_extruder", "infill_extruder", "solid_infill_extruder"};
 
     if (std::ranges::find(extruder_keys, item.def().name) == extruder_keys.end()) {
         return;

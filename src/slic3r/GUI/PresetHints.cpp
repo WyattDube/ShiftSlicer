@@ -131,6 +131,7 @@ std::string PresetHints::maximum_volumetric_flow_description(const PresetBundle 
         return i <= 0 || i > num_extruders || idx_extruder == -1 || idx_extruder == i - 1;
     };
     bool perimeter_extruder_active                  = feature_extruder_active(print_config.opt_int("perimeter_extruder"));
+    bool external_perimeter_extruder_active         = feature_extruder_active(print_config.opt_int("external_perimeter_extruder"));
     bool infill_extruder_active                     = feature_extruder_active(print_config.opt_int("infill_extruder"));
     bool solid_infill_extruder_active               = feature_extruder_active(print_config.opt_int("solid_infill_extruder"));
     bool support_material_extruder_active           = feature_extruder_active(print_config.opt_int("support_material_extruder"));
@@ -171,10 +172,10 @@ std::string PresetHints::maximum_volumetric_flow_description(const PresetBundle 
                 max_flow_extrusion_type = GUI::into_u8(_(err_msg));
             }
         };
-        if (perimeter_extruder_active) {
+        if (external_perimeter_extruder_active)
             test_flow(frExternalPerimeter, external_perimeter_extrusion_width, std::max(external_perimeter_speed, small_perimeter_speed), L("external perimeters"));
+        if (perimeter_extruder_active)
             test_flow(frPerimeter,         perimeter_extrusion_width,          std::max(perimeter_speed,          small_perimeter_speed), L("perimeters"));
-        }
         if (! bridging && infill_extruder_active)
             test_flow(frInfill, infill_extrusion_width, infill_speed, L("infill"));
         if (solid_infill_extruder_active) {

@@ -23,8 +23,10 @@ namespace Slic3r {
 unsigned int PrintRegion::extruder(FlowRole role) const
 {
     size_t extruder = 0;
-    if (role == frPerimeter || role == frExternalPerimeter)
+    if (role == frPerimeter)
         extruder = m_config.get<int>("perimeter_extruder");
+    else if (role == frExternalPerimeter)
+        extruder = m_config.get<int>("external_perimeter_extruder");
     else if (role == frInfill)
         extruder = m_config.get<int>("infill_extruder");
     else if (role == frSolidInfill || role == frTopSolidInfill)
@@ -96,6 +98,7 @@ double PrintRegion::nozzle_dmr_avg(const PrintConfigView& print_config) const
 
     const std::vector<unsigned int> physical_extruders{expand_virtual_extruders_1based(
         {static_cast<unsigned int>(m_config.get<int>("perimeter_extruder")),
+         static_cast<unsigned int>(m_config.get<int>("external_perimeter_extruder")),
          static_cast<unsigned int>(m_config.get<int>("infill_extruder")),
          static_cast<unsigned int>(m_config.get<int>("solid_infill_extruder"))},
         m_config.virtual_extruders()
@@ -169,6 +172,12 @@ void PrintRegion::collect_object_printing_extruders(
         return config.get<std::vector<int>>("perimeters").at(slot) > 0 || has_brim;
     });
 
+    const int external_perimeter_extruder{config.get<int>("external_perimeter_extruder")};
+    ASSERT(external_perimeter_extruder > 0);
+    emplace_extruder(external_perimeter_extruder, [&](std::size_t slot) {
+        return config.get<std::vector<int>>("perimeters").at(slot) > 0;
+    });
+
     const int infill_extruder{config.get<int>("infill_extruder")};
     ASSERT(infill_extruder > 0);
     emplace_extruder(infill_extruder, [&](std::size_t slot) {
@@ -198,6 +207,7 @@ void PrintRegion::collect_object_printing_extruders(const Print &print, std::vec
             || Biz::Algorithms::VirtualExtruder::is_virtual_extruder(static_cast<unsigned int>(id), print.virtual_extruders());
     };
     ASSERT(valid_extruder(this->config().get<int>("perimeter_extruder")));
+    ASSERT(valid_extruder(this->config().get<int>("external_perimeter_extruder")));
     ASSERT(valid_extruder(this->config().get<int>("infill_extruder")));
     ASSERT(valid_extruder(this->config().get<int>("solid_infill_extruder")));
     collect_object_printing_extruders(this->config(), print.has_brim(), object_extruders, print.virtual_extruders());

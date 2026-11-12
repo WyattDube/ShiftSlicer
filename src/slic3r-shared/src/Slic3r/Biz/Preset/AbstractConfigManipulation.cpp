@@ -290,6 +290,7 @@ void AbstractConfigManipulation::toggle_print_fff_options(DynamicPrintConfig* co
         toggle_field(el, have_brim);
     // perimeter_extruder uses the same logic as in Print::extruders()
     toggle_field("perimeter_extruder", have_perimeters || have_brim);
+    toggle_field("external_perimeter_extruder", have_perimeters);
 
     bool have_raft = config->opt_int("raft_layers") > 0;
     bool have_support_material = config->opt_bool("support_material") || have_raft;

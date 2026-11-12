@@ -150,7 +150,7 @@ std::set<unsigned> get_volume_extruder_candidates(
         volume_default_extruder_item ? std::optional{volume_default_extruder_item->get<int>()} :
                                        std::nullopt
     };
-    for (const std::string key : {"perimeter_extruder", "infill_extruder", "solid_infill_extruder"})
+    for (const std::string key : {"perimeter_extruder", "external_perimeter_extruder", "infill_extruder", "solid_infill_extruder"})
     {
         const std::optional<Domain::ConfigItem> macro_extruder{macro_override(macro_overrides, key)};
         if (macro_extruder && macro_extruder->get<int>() > 0) {
